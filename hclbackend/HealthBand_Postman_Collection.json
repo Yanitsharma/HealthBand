@@ -1,0 +1,377 @@
+{
+  "info": {
+    "name": "HealthBand API",
+    "description": "Complete API collection for HealthBand - Your daily wellness snapshot",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token', jsonData.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"johndoe\",\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token', jsonData.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Patient Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/patient/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "patient", "dashboard"]
+            }
+          }
+        },
+        {
+          "name": "Update Goals",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"steps\": 10000,\n  \"sleep\": 8,\n  \"water\": 3,\n  \"calories\": 700\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/patient/goals",
+              "host": ["{{base_url}}"],
+              "path": ["api", "patient", "goals"]
+            }
+          }
+        },
+        {
+          "name": "Update Activity",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"steps\": 6520,\n  \"sleep\": 6.5,\n  \"water\": 1.8,\n  \"calories\": 480\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/patient/activity",
+              "host": ["{{base_url}}"],
+              "path": ["api", "patient", "activity"]
+            }
+          }
+        },
+        {
+          "name": "Reset Daily Activity",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/patient/reset-daily",
+              "host": ["{{base_url}}"],
+              "path": ["api", "patient", "reset-daily"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Reminders",
+      "item": [
+        {
+          "name": "Add Reminder - Blood Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Upcoming blood test\",\n  \"category\": \"Lab\",\n  \"dueDate\": \"2024-12-10T09:00:00.000Z\",\n  \"notes\": \"Fasting required - no food after 8pm\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/patient/reminders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "patient", "reminders"]
+            }
+          }
+        },
+        {
+          "name": "Add Reminder - Eye Checkup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Upcoming eye test / full body test\",\n  \"category\": \"Checkup\",\n  \"dueDate\": \"2024-12-12T14:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/patient/reminders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "patient", "reminders"]
+            }
+          }
+        },
+        {
+          "name": "Add Reminder - Sugar Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sugar level test\",\n  \"category\": \"Diabetes\",\n  \"dueDate\": \"2024-12-05T08:00:00.000Z\",\n  \"timeOfDay\": \"morning\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/patient/reminders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "patient", "reminders"]
+            }
+          }
+        },
+        {
+          "name": "Get All Reminders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/patient/reminders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "patient", "reminders"]
+            }
+          }
+        },
+        {
+          "name": "Get Pending Reminders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/patient/reminders?completed=false",
+              "host": ["{{base_url}}"],
+              "path": ["api", "patient", "reminders"],
+              "query": [
+                {
+                  "key": "completed",
+                  "value": "false"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Reminder",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isCompleted\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/patient/reminders/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "patient", "reminders", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "REMINDER_ID_HERE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Reminder",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/patient/reminders/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "patient", "reminders", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "REMINDER_ID_HERE"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+
