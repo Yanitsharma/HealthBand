@@ -4,7 +4,8 @@ import cors from "cors";
 import http from "http"; // 1. Import HTTP
 import { Server } from "socket.io"; // 2. Import Socket.io
 import connectDB from "./config/db.js";
-import { startSimulation } from './simulator.js';
+import { startSimulation } from './simulator.js'; // <--- Simulator Import
+
 // Routes Imports
 import userRoutes from "./Routes/userRoutes.js";
 import authRoutes from "./Routes/authRoutes.js";
@@ -12,7 +13,6 @@ import patientRoutes from "./Routes/patientRoutes.js";
 import appointmentRoutes from "./Routes/appointmentRoutes.js";
 
 // Model Import (Required for the simulator to update DB)
-// Make sure this path matches where you saved the schema from the previous step
 import Patient from "./models/Patient.js"; 
 
 dotenv.config();
@@ -26,7 +26,7 @@ const server = http.createServer(app);
 // 4. Initialize Socket.io
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", // URL of your React Frontend
+    origin: ["http://localhost:5173", "https://your-app-name.onrender.com"], // Add your Render frontend URL here if needed
     methods: ["GET", "POST"],
   },
 });
@@ -74,14 +74,13 @@ app.post("/api/simulate/update", async (req, res) => {
       { $set: updateQuery },
       { 
         new: true, 
-        upsert: true, // <--- ADD THIS LINE (Creates the record if missing)
-        setDefaultsOnInsert: true // <--- OPTIONAL: Ensures default values (goals, etc.) are set
+        upsert: true, 
+        setDefaultsOnInsert: true 
       } 
     );
 
     if (updatedPatient) {
       // 3. Push Real-Time Update to Frontend
-      // We emit the entire todaysActivity object so frontend stays synced
       io.to(userId).emit("activity-update", updatedPatient.todaysActivity);
       
       return res.json({ success: true, message: "Data updated and emitted" });
@@ -145,6 +144,10 @@ app.get("/", (req, res) => {
 
 // 5. Start Server (Use server.listen instead of app.listen)
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () =>
-  console.log(`🚀 Server running on port ${PORT} with Socket.io enabled`)
-);
+
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT} with Socket.io enabled`);
+  
+  // 🚀 LAUNCH SIMULATOR (Runs in background inside this process)
+  startSimulation(); 
+});
