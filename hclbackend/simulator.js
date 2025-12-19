@@ -53,6 +53,11 @@ export async function startSimulation() {
                 initialSleep = 0;
                 await axios.post(API_URL, { userId: uId, type: 'sleep', value: 0 });
             }
+            if (initialSteps > 12000) {
+                console.log(`⚠️ Detected bad steps data for user (${initialSteps}). Resetting to 0.`);
+                initialSteps = 0;
+                await axios.post(API_URL, { userId: uId, type: 'steps', value: 0 });
+            }
             if (initialWater > 4) {
                 console.log(`⚠️ Detected bad Water data for user (${initialWater}). Resetting to 0.`);
                 initialWater = 0;
