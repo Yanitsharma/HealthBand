@@ -15,6 +15,10 @@ function Home() {
   return (
     <div className="home-container">
       <div className="home-content">
+        <div className="logo-header">
+      <div className="hb-icon">HB</div>
+      <div className="app-name">HealthBand</div>
+    </div>
         <h1>Healthcare Patient Portal</h1>
         <p>Welcome to the patient management system</p>
         <div className="home-buttons">

@@ -7,18 +7,18 @@ const patientSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
-  // Today's Activity
+  // Real-time Activity Data
   todaysActivity: {
     steps: {
       current: { type: Number, default: 0 },
       goal: { type: Number, default: 10000 },
     },
     sleep: {
-      current: { type: Number, default: 0 }, // in hours
+      current: { type: Number, default: 0 }, // hours
       goal: { type: Number, default: 8 },
     },
     water: {
-      current: { type: Number, default: 0 }, // in liters
+      current: { type: Number, default: 0 }, // liters
       goal: { type: Number, default: 3 },
     },
     calories: {
@@ -26,14 +26,21 @@ const patientSchema = new mongoose.Schema({
       goal: { type: Number, default: 700 },
     },
   },
-  // Profile completion
+  // Reminders for the dashboard list
+  reminders: [{
+    title: { type: String, required: true },
+    category: { type: String, enum: ['Medication', 'Appointment', 'Workout', 'General'], default: 'General' },
+    timeRemaining: String, // e.g. "2 hours"
+    isCompleted: { type: Boolean, default: false },
+    date: { type: Date, default: Date.now }
+  }],
+  // Profile & Tips
   profileCompletion: {
     type: Number,
     default: 0,
     min: 0,
     max: 100,
   },
-  // Health tips
   healthTips: [
     {
       tip: String,
@@ -44,10 +51,10 @@ const patientSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
-// Update the updatedAt timestamp before saving
-patientSchema.pre("save", function () {
+// Update timestamp on save
+patientSchema.pre("save", function (next) {
   this.updatedAt = Date.now();
+  next();
 });
 
 export default mongoose.model("Patient", patientSchema);
-

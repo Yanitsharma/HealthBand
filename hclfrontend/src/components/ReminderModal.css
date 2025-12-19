@@ -12,7 +12,7 @@
 
 .form-group label {
   font-weight: 500;
-  color: #fff;
+  color: hsl(109, 92%, 29%);
   font-size: 14px;
 }
 
@@ -23,7 +23,7 @@
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
-  color: #fff;
+  color: hsl(138, 98%, 34%);
   font-size: 15px;
   transition: all 0.3s ease;
   font-family: inherit;
@@ -90,7 +90,7 @@
 .category-name {
   font-size: 13px;
   font-weight: 500;
-  color: #fff;
+  color: hwb(110 19% 20%);
 }
 
 .reminder-actions {
