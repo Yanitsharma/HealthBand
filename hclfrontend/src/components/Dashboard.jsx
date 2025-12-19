@@ -10,7 +10,7 @@ import MyAppointmentsModal from './MyAppointmentsModal';
 import './Dashboard.css';
 
 // Initialize Socket outside component to avoid reconnection loops
-const socket = io('http://localhost:5000'); // Ensure this matches your server port
+const socket = io('https://healthband-1.onrender.com/'); // Ensure this matches your server port
 
 function Dashboard() {
   const navigate = useNavigate();
