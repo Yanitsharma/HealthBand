@@ -32,7 +32,7 @@ function Register() {
     setMessage('');
     
     try {
-      const response = await fetch('https://healthband-1.onrender.com/api/auth/register', {
+      const response = await fetch('https://healthband-3.onrender.com/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
