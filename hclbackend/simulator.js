@@ -6,7 +6,12 @@ import Patient from './models/Patient.js';
 
 dotenv.config();
 
-const API_URL = "http://localhost:5000/api/simulate/update";
+// 1. CHANGE: Use Dynamic Local Port
+// This ensures it works on Render (process.env.PORT) and Locally (5000)
+// It talks directly to the server running alongside it.
+const PORT = process.env.PORT || 5000;
+const API_URL = `http://localhost:${PORT}/api/simulate/update`;
+
 const MONGO_URI = process.env.MONGO_URI;
 
 // Store simulated data
@@ -15,48 +20,55 @@ const userStates = {};
 // 📅 TRACKER: Remember the current day to detect midnight
 let currentDayTracker = new Date().getDate();
 
-console.log(`🤖 Smart Simulator Starting... (Tracking Day: ${currentDayTracker})`);
-
-mongoose.connect(MONGO_URI)
+// 2. CHANGE: Don't auto-start. Export the function so server.js can control it.
+/* mongoose.connect(MONGO_URI)
   .then(() => {
     console.log("✅ DB Connected. Checking for bad data...");
     startSimulation();
   })
   .catch(err => console.error("❌ DB Error:", err));
+*/
 
-async function startSimulation() {
+// 3. CHANGE: Add 'export' keyword
+export async function startSimulation() {
+  console.log(`🤖 Smart Simulator Starting in Background... (Tracking Day: ${currentDayTracker})`);
+  console.log(`📡 Sending updates to: ${API_URL}`);
+
   // 1. Initialize from DB & FIX BAD DATA
-  const patients = await Patient.find();
-  
-  for (const p of patients) {
-    if(p.userId) {
-        const uId = p.userId.toString();
-        
-        let initialSteps = p.todaysActivity?.steps?.current || 0;
-        let initialCalories = p.todaysActivity?.calories?.current || 0;
-        let initialSleep = p.todaysActivity?.sleep?.current || 0;
-        let initialWater = p.todaysActivity?.water?.current || 0;
+  try {
+      const patients = await Patient.find();
+      
+      for (const p of patients) {
+        if(p.userId) {
+            const uId = p.userId.toString();
+            
+            let initialSteps = p.todaysActivity?.steps?.current || 0;
+            let initialCalories = p.todaysActivity?.calories?.current || 0;
+            let initialSleep = p.todaysActivity?.sleep?.current || 0;
+            let initialWater = p.todaysActivity?.water?.current || 0;
 
-        // --- 🧹 SANITY CHECK (Stricter Limits) ---
-        // If sleep > 9 or Water > 4 (based on your caps), reset immediately.
-        if (initialSleep > 9) {
-            console.log(`⚠️ Detected bad Sleep data for user (${initialSleep}). Resetting to 0.`);
-            initialSleep = 0;
-            await axios.post(API_URL, { userId: uId, type: 'sleep', value: 0 });
-        }
-        if (initialWater > 4) {
-            console.log(`⚠️ Detected bad Water data for user (${initialWater}). Resetting to 0.`);
-            initialWater = 0;
-            await axios.post(API_URL, { userId: uId, type: 'water', value: 0 });
-        }
+            // --- 🧹 SANITY CHECK (Stricter Limits) ---
+            if (initialSleep > 9) {
+                console.log(`⚠️ Detected bad Sleep data for user (${initialSleep}). Resetting to 0.`);
+                initialSleep = 0;
+                await axios.post(API_URL, { userId: uId, type: 'sleep', value: 0 });
+            }
+            if (initialWater > 4) {
+                console.log(`⚠️ Detected bad Water data for user (${initialWater}). Resetting to 0.`);
+                initialWater = 0;
+                await axios.post(API_URL, { userId: uId, type: 'water', value: 0 });
+            }
 
-        userStates[uId] = {
-            steps: initialSteps,
-            calories: initialCalories,
-            sleep: initialSleep,
-            water: initialWater
-        };
-    }
+            userStates[uId] = {
+                steps: initialSteps,
+                calories: initialCalories,
+                sleep: initialSleep,
+                water: initialWater
+            };
+        }
+      }
+  } catch (err) {
+      console.error("❌ Simulator Init Error (Is DB Connected?):", err.message);
   }
 
   // 2. FAST LOOP: Steps & Calories (Every 3 seconds)
@@ -91,7 +103,7 @@ async function startSimulation() {
             console.log(`\n📅 Date changed from ${currentDayTracker} to ${today}. Resetting Stats...`);
             currentDayTracker = today;
             await resetDailyStats();
-            return; // Skip the rest of the loop so we don't increment immediately after reset
+            return; // Skip the rest of the loop
         }
         // -------------------------
 
@@ -103,7 +115,6 @@ async function startSimulation() {
           // --- WATER LOGIC (Hard Cap at 4) ---
           if (userStates[userId].water < 4) {
               const newWater = userStates[userId].water + 0.1;
-              // Math.min ensures it NEVER goes above 4.0
               userStates[userId].water = Math.min(4, parseFloat(newWater.toFixed(1)));
               
               await axios.post(API_URL, { userId, type: 'water', value: userStates[userId].water });
@@ -112,7 +123,6 @@ async function startSimulation() {
           // --- SLEEP LOGIC (Hard Cap at 9) ---
           if (userStates[userId].sleep < 9) {
               const newSleep = userStates[userId].sleep + 0.5;
-              // Math.min ensures it NEVER goes above 9.0
               userStates[userId].sleep = Math.min(9, parseFloat(newSleep.toFixed(1)));
               
               await axios.post(API_URL, { userId, type: 'sleep', value: userStates[userId].sleep });

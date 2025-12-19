@@ -4,7 +4,7 @@ import cors from "cors";
 import http from "http"; // 1. Import HTTP
 import { Server } from "socket.io"; // 2. Import Socket.io
 import connectDB from "./config/db.js";
-
+import { startSimulation } from './simulator.js';
 // Routes Imports
 import userRoutes from "./Routes/userRoutes.js";
 import authRoutes from "./Routes/authRoutes.js";
