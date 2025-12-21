@@ -31,7 +31,7 @@ const io = new Server(server, {
         "http://localhost:5173", 
         "http://localhost:5174",
         "https://healthband-2.onrender.com" ,// Update this with your ACTUAL Render URL
-        "https://healthbband.vercel.app/"
+        "https://healthbband.vercel.app"
     ],
     methods: ["GET", "POST"],
   },
