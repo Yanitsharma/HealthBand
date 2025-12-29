@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Doctor from "../models/Doctor.js";
 import Appointment from "../models/Appointment.js";
 import TimeSlot from "../models/TimeSlot.js";
@@ -196,27 +197,8 @@ export const bookAppointment = async (req, res) => {
       });
     }
 
-    // Check if time slot is available
-    const timeSlot = await TimeSlot.findOne({ slotId });
-    if (!timeSlot) {
-      return res.status(404).json({
-        success: false,
-        message: "Time slot not found",
-      });
-    }
-
-    if (timeSlot.isBooked) {
-      return res.status(400).json({
-        success: false,
-        message: "This time slot has been booked by another patient",
-        error: {
-          code: "SLOT_NOT_AVAILABLE",
-          details: "Please select another time slot",
-        },
-      });
-    }
-
     // Check if patient already has appointment with this doctor on same date
+    // We check this BEFORE locking the slot to avoid unnecessary locks
     const existingAppointment = await Appointment.findOne({
       patientId: userId,
       doctorId,
@@ -238,8 +220,39 @@ export const bookAppointment = async (req, res) => {
       });
     }
 
+    // --- FIX START: Atomic Slot Booking ---
+    // Generate ID first so we can link it immediately
+    const appointmentId = new mongoose.Types.ObjectId();
+
+    // Try to find the slot AND update it only if isBooked is false
+    const timeSlot = await TimeSlot.findOneAndUpdate(
+      { slotId: slotId, isBooked: false },
+      {
+        $set: {
+          isBooked: true,
+          bookedBy: userId,
+          appointmentId: appointmentId,
+        },
+      },
+      { new: true }
+    );
+
+    // If timeSlot is null, it means the slot was already booked (Race condition caught)
+    if (!timeSlot) {
+      return res.status(409).json({
+        success: false,
+        message: "This time slot has just been booked by another patient",
+        error: {
+          code: "SLOT_NOT_AVAILABLE",
+          details: "Please select another time slot",
+        },
+      });
+    }
+    // --- FIX END ---
+
     // Create appointment
     const appointment = await Appointment.create({
+      _id: appointmentId, // Use the ID we generated above
       patientId: userId,
       doctorId,
       date: new Date(date),
@@ -251,12 +264,6 @@ export const bookAppointment = async (req, res) => {
       currency: doctor.currency,
       location: `Clinic Room ${Math.floor(Math.random() * 10) + 1}, 2nd Floor`,
     });
-
-    // Mark time slot as booked
-    timeSlot.isBooked = true;
-    timeSlot.bookedBy = userId;
-    timeSlot.appointmentId = appointment._id;
-    await timeSlot.save();
 
     // Populate data for response
     await appointment.populate("patientId", "name username email");
@@ -283,6 +290,16 @@ export const bookAppointment = async (req, res) => {
       },
     });
   } catch (error) {
+    // If appointment creation fails, we should try to release the slot
+    if (req.body.slotId) {
+      await TimeSlot.updateOne(
+        { slotId: req.body.slotId, bookedBy: req.user.id },
+        {
+          $set: { isBooked: false, bookedBy: null, appointmentId: null },
+        }
+      ).catch((err) => console.error("Error releasing slot during rollback:", err));
+    }
+
     res.status(500).json({
       success: false,
       message: error.message,
@@ -579,17 +596,22 @@ export const rescheduleAppointment = async (req, res) => {
       });
     }
 
-    // Check if new time slot is available
-    const newTimeSlot = await TimeSlot.findOne({ slotId: newSlotId });
-    if (!newTimeSlot) {
-      return res.status(404).json({
-        success: false,
-        message: "New time slot not found",
-      });
-    }
+    // --- FIX START: Atomic Slot Booking for New Slot ---
+    // Try to lock the NEW slot atomically
+    const newTimeSlot = await TimeSlot.findOneAndUpdate(
+      { slotId: newSlotId, isBooked: false },
+      {
+        $set: {
+          isBooked: true,
+          bookedBy: userId,
+          appointmentId: appointment._id,
+        },
+      },
+      { new: true }
+    );
 
-    if (newTimeSlot.isBooked) {
-      return res.status(400).json({
+    if (!newTimeSlot) {
+      return res.status(409).json({
         success: false,
         message: "Selected time slot is not available",
         error: {
@@ -598,6 +620,7 @@ export const rescheduleAppointment = async (req, res) => {
         },
       });
     }
+    // --- FIX END ---
 
     // Store old appointment details
     const oldDate = appointment.date;
@@ -616,7 +639,7 @@ export const rescheduleAppointment = async (req, res) => {
     appointment.status = "rescheduled";
     await appointment.save();
 
-    // Free up old time slot
+    // Free up old time slot (Safe to do after securing new one)
     await TimeSlot.updateOne(
       { slotId: oldSlotId },
       {
@@ -624,12 +647,6 @@ export const rescheduleAppointment = async (req, res) => {
         $unset: { bookedBy: "", appointmentId: "" },
       }
     );
-
-    // Book new time slot
-    newTimeSlot.isBooked = true;
-    newTimeSlot.bookedBy = userId;
-    newTimeSlot.appointmentId = appointment._id;
-    await newTimeSlot.save();
 
     res.status(200).json({
       success: true,
@@ -644,10 +661,18 @@ export const rescheduleAppointment = async (req, res) => {
       },
     });
   } catch (error) {
+    // If saving appointment failed, try to release the new slot we just locked
+    if (req.body.newSlotId) {
+      await TimeSlot.updateOne(
+        { slotId: req.body.newSlotId, bookedBy: req.user.id },
+        {
+          $set: { isBooked: false, bookedBy: null, appointmentId: null },
+        }
+      ).catch((err) => console.error("Error releasing slot during rollback:", err));
+    }
     res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
-

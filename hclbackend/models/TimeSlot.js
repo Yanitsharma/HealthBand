@@ -38,7 +38,8 @@ const timeSlotSchema = new mongoose.Schema({
 });
 
 // Create compound index for faster queries
-timeSlotSchema.index({ doctorId: 1, date: 1, time: 1 });
+// Change this line in your schema
+timeSlotSchema.index({ doctorId: 1, date: 1, time: 1 }, { unique: true });
 
 export default mongoose.model("TimeSlot", timeSlotSchema);
 
